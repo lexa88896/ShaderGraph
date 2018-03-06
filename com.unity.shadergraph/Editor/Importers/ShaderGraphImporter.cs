@@ -73,6 +73,7 @@ Shader ""Hidden/GraphErrorShader2""
         text = text.Replace("Hidden/GraphErrorShader2", shaderName);
 
         var shader = ShaderUtil.CreateShaderAsset(text);
+        if (MaterialGraphAsset.ShaderHasError(shader)) OutputShaderErrors(shader);
 
         EditorMaterialUtility.SetShaderDefaults(
             shader,
@@ -106,6 +107,34 @@ Shader ""Hidden/GraphErrorShader2""
         }
         configuredTextures = new List<PropertyCollector.TextureInfo>();
         return null;
+    }
+
+    private static void OutputShaderErrors(Shader shader)
+    {
+        var message = new ShaderStringBuilder();
+
+        foreach (var error in MaterialGraphAsset.GetShaderErrors(shader))
+        {
+            var isWarning = (error.warning != 0);
+            var level = isWarning ? "warning" : "error";
+
+            message.Append("Shader {0} in `{1}`: {2} at line {3}", level, shader.name, error.message, error.line);
+            if (!string.IsNullOrEmpty(error.platform)) message.Append(" (on {0})", error.platform);
+            message.AppendNewLine();
+
+            if (!string.IsNullOrEmpty(error.messageDetails))
+            {
+                message.AppendNewLine();
+                message.AppendLine(error.messageDetails);
+            }
+
+            if (isWarning)
+                Debug.LogWarning(message.ToString());
+            else
+                Debug.LogError(message.ToString());
+
+            message.Clear();
+        }
     }
 }
 
